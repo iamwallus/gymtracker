@@ -1,12 +1,21 @@
 {
   "name": "Gym Tracker",
-  "short_name": "Gym Tracker",
-  "start_url": "index.html",
+  "short_name": "GymTracker",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0c0c0c",
-  "theme_color": "#800000",
+  "background_color": "#0a0a0a",
+  "theme_color": "#330000",
+  "description": "Track your gym workouts, 1RM, reps and history.",
   "icons": [
-    { "src": "logo.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
