@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gym Tracker</title>
+<link rel="icon" href="logo.png">
+<style>
+:root {
+  --bg:#0a0a0a;
+  --card-top:#2b0000;
+  --card-bottom:#400000;
+  --primary:#ff1a1a;
+  --text:#e0e0e0;
+  --shadow:rgba(0,0,0,0.5);
+}
+
+body {
+  margin:0;
+  font-family: "Segoe UI", sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+
+header {
+  background: linear-gradient(90deg, #330000, #800000);
+  padding:16px;
+  text-align:center;
+  font-weight:bold;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 3px 8px var(--shadow);
+}
+header img { height:28px; width:28px; margin-right:10px; }
+
+main { flex:1; overflow-y:auto; padding:16px; }
+
+.card {
+  background: linear-gradient(to bottom, var(--card-top), var(--card-bottom));
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:16px;
+  box-shadow:0 2px 6px var(--shadow);
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow:0 4px 10px var(--shadow);
+  transition: all 0.15s;
+}
+
+input, select, button {
+  padding:6px;
+  border-radius:6px;
+  border:none;
+  font-size:14px;
+  background:#330000;
+  color:var(--text);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+input:focus, select:focus { outline:none; box-shadow:0 0 6px var(--primary); }
+
+button {
+  background:#550000;
+  color:white;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover { background:#800000; }
+button.success { background:#227744; color:white; }
+
+nav {
+  display:flex;
+  justify-content:space-around;
+  padding:8px 0;
+  background:#330000;
+  border-top:1px solid #800000;
+  position: sticky; 
+  bottom:0;
+}
+nav button { background:none; font-size:20px; color:white; flex:1; }
+
+h4 { margin:0 0 8px 0; }
+
+.exercise-boxes {
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.box {
+  background: linear-gradient(to bottom, #1a0000, #300000);
+  border-radius:10px;
+  padding:10px;
+  flex:1 1 120px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  box-shadow:0 2px 5px var(--shadow);
+  min-width:100px;
+}
+
+.box label {
+  font-size:12px;
+  margin-bottom:4px;
+}
+
+table {
+  width:100%;
+  border-collapse: collapse;
+  margin-top:8px;
+}
+table, th, td { border:1px solid #550000; }
+th, td { padding:6px; text-align:center; font-size:14px; }
+th { background:#330000; }
+tr:nth-child(even) { background:#1a0000; }
+
+</style>
+</head>
+<body>
+
+<header><img src="logo.png" alt="Logo">Gym Tracker</header>
+
+<!-- Home Screen -->
+<main id="screen-home">
+  <div class="card">
+    <h3>Workout Log</h3>
+    <button class="success" onclick="logGym()">I went to the gym</button>
+    <p id="lastGym">Last workout: never</p>
+    <p id="nextSplit">Next split: Push</p>
+  </div>
+
+  <div class="card">
+    <h3>Membership</h3>
+    <label>Next Payment Date</label>
+    <input type="date" id="membershipDate" onchange="saveMembership()">
+    <small>Notifications alert 3 days before payment</small>
+  </div>
+
+  <div class="card">
+    <h3>Gym History</h3>
+    <button onclick="clearHistory()" style="margin-bottom:6px;">Remove History</button>
+    <table id="gym-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Split</th>
+          <th>Edit</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- 1RM & Reps -->
+<main id="screen-rm" style="display:none;">
+  <div class="card">
+    <h3>1RM</h3>
+    <div class="exercise-boxes" id="rm-box"></div>
+  </div>
+
+  <div class="card">
+    <h3>Reps & Weight</h3>
+    <div class="exercise-boxes" id="reps-box"></div>
+  </div>
+
+  <button id="save-btn" style="margin-top:10px;">Save</button>
+</main>
+
+<div class="spacer"></div>
+
+<nav>
+  <button onclick="show('home')">Home</button>
+  <button onclick="show('rm')">1RM</button>
+</nav>
+
+<script>
+const EXERCISES = ["Bench Press","Leg Press","Leg Extension","Preacher Curl","Lat Pull Down","Tricep Push Down"];
+const STORAGE_KEY = "gym-tracker-data";
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+if(!data.exercises) data.exercises={};
+if(!data.nextSplit) data.nextSplit="Push";
+if(!data.history) data.history=[];
+
+function show(screen){
+  document.getElementById("screen-home").style.display = screen==="home" ? "block":"none";
+  document.getElementById("screen-rm").style.display = screen==="rm" ? "block":"none";
+  if(screen==="rm") initExercises();
+  if(screen==="home") renderGymTable();
+}
+
+function initExercises(){
+  const rmBox = document.getElementById("rm-box");
+  const repsBox = document.getElementById("reps-box");
+  rmBox.innerHTML = "";
+  repsBox.innerHTML = "";
+
+  EXERCISES.forEach(ex=>{
+    const safeId = ex.replace(/\s+/g,"_");
+    const rm = data.exercises[ex]?.rm || 50;
+    const repsWeight = data.exercises[ex]?.repsWeight || 20;
+    const reps = data.exercises[ex]?.reps || 10;
+
+    // 1RM box
+    const rmDiv = document.createElement("div");
+    rmDiv.className = "box";
+    rmDiv.innerHTML = `<strong>${ex}</strong>
+      <label>1RM</label>
+      <input type="number" id="${safeId}-rm" value="${rm}">`;
+    rmBox.appendChild(rmDiv);
+
+    // Reps box
+    const repsDiv = document.createElement("div");
+    repsDiv.className = "box";
+    repsDiv.innerHTML = `<strong>${ex}</strong>
+      <label>Weight</label>
+      <input type="number" id="${safeId}-repsWeight" value="${repsWeight}">
+      <label>Reps</label>
+      <input type="number" id="${safeId}-reps" value="${reps}">`;
+    repsBox.appendChild(repsDiv);
+  });
+}
+
+document.getElementById("save-btn").addEventListener("click",()=>{
+  EXERCISES.forEach(ex=>{
+    const safeId = ex.replace(/\s+/g,"_");
+    const rm = parseInt(document.getElementById(`${safeId}-rm`).value);
+    const repsWeight = parseInt(document.getElementById(`${safeId}-repsWeight`).value);
+    const reps = parseInt(document.getElementById(`${safeId}-reps`).value);
+    data.exercises[ex]={rm,repsWeight,reps};
+  });
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  alert("Saved!");
+  renderGymTable();
+});
+
+function logGym(){
+  const now = new Date().toISOString();
+  data.history.push({date:now, split:data.nextSplit, exercises: JSON.parse(JSON.stringify(data.exercises))});
+  const splits=["Push","Pull","Legs"];
+  data.nextSplit = splits[(splits.indexOf(data.nextSplit)+1)%splits.length];
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  updateHome();
+}
+
+function saveMembership(){
+  const dateInput = document.getElementById("membershipDate").value;
+  data.membership = dateInput;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function updateHome(){
+  const last = data.history[data.history.length-1];
+  document.getElementById("lastGym").textContent = last ? "Last workout: "+new Date(last.date).toLocaleString()+" ("+last.split+")" : "Last workout: never";
+  document.getElementById("nextSplit").textContent = "Next split: "+data.nextSplit;
+  document.getElementById("membershipDate").value = data.membership||"";
+  renderGymTable();
+}
+
+function renderGymTable(){
+  const tbody = document.querySelector("#gym-table tbody");
+  tbody.innerHTML="";
+  data.history.forEach((entry,idx)=>{
+    const tr = document.createElement("tr");
+    const date = new Date(entry.date).toLocaleString();
+    tr.innerHTML = `<td>${date}</td>
+                    <td>${entry.split}</td>
+                    <td><button onclick="editSession(${idx})">Edit</button></td>
+                    <td><button onclick="removeSession(${idx})">Remove</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function editSession(idx){
+  const entry = data.history[idx];
+  EXERCISES.forEach(ex=>{
+    const safeId = ex.replace(/\s+/g,"_");
+    document.getElementById(`${safeId}-rm`).value = entry.exercises[ex].rm;
+    document.getElementById(`${safeId}-repsWeight`).value = entry.exercises[ex].repsWeight;
+    document.getElementById(`${safeId}-reps`).value = entry.exercises[ex].reps;
+  });
+  alert("Loaded session for editing. Press Save when done.");
+}
+
+function removeSession(idx){
+  if(confirm("Are you sure you want to remove this session?")){
+    data.history.splice(idx,1);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    renderGymTable();
+  }
+}
+
+function clearHistory(){
+  if(confirm("Remove all gym history?")){
+    data.history=[];
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    renderGymTable();
+  }
+}
+
+window.onload=()=>{
+  updateHome();
+  show('home');
+};
+</script>
+
+</body>
+</html>
