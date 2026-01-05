@@ -1,0 +1,17 @@
+{
+  "name": "Gym Tracker",
+  "short_name": "GPPWA",
+  "description": "Gym tracking stuff",
+  "scope": "/gym-tracker/",
+  "start_url": "/gym-tracker/",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "display": "standalone",  
+  "icons": [
+      {
+        "src": "/gym-tracker/logo.png",
+        "type": "image/png",
+        "sizes": "206x206"
+      }
+  ]
+}
